@@ -1,0 +1,44 @@
+kind: pipeline
+type: docker
+name: default
+
+steps:
+  - name: authenticate
+    image: crazydev22/drone-mvn-auth
+    settings:
+      content:
+        from_secret: content
+
+  - name: build
+    image: maven:3-eclipse-temurin-17
+    commands:
+      - mvn compile -DskipTests=true -Dmaven.javadoc.skip=true --batch-mode --global-settings settings.xml
+    environment:
+      MAVEN_HOME: /drone/src/.m2
+      M2_HOME: /drone/src/.m2
+    depends_on:
+      - authenticate
+
+  - name: test
+    image: maven:3-eclipse-temurin-17
+    commands:
+      - mvn verify test --batch-mode --global-settings settings.xml
+    environment:
+      MAVEN_HOME: /drone/src/.m2
+      M2_HOME: /drone/src/.m2
+    depends_on:
+      - build
+
+  - name: publish
+    image: maven:3-eclipse-temurin-17
+    commands:
+      - mvn clean deploy -DskipTests=true --global-settings settings.xml
+    when:
+      ref:
+        - refs/heads/develop
+        - refs/tags/*
+    environment:
+      MAVEN_HOME: /drone/src/.m2
+      M2_HOME: /drone/src/.m2
+    depends_on:
+      - test
