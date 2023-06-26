@@ -1,0 +1,12 @@
+name: ScorePrefix
+version: '${project.version}'
+main: de.crazydev22.scoreprefix.ScorePrefix
+api-version: '1.19'
+load: STARTUP
+depend: [LuckPerms, PlaceholderAPI]
+authors: [CrazyDev22]
+
+commands:
+  sb:
+    permission: "scoreprefix.command"
+    aliases: ["scoreprefix"]

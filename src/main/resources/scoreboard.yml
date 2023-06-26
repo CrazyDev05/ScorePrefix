@@ -1,0 +1,23 @@
+enabled: true
+
+title: "&b&lCrafterslife.de"
+speed: 5
+content:
+  - ' '
+  - '&8&l» &b&lOnline Zeit '
+  - '&7%zeit%'
+  - ' '
+  - '&8&l» &b&lSpieler'
+  - '&7%serversystem_onlineplayers% Online '
+  - ' '
+  - '&8&l» &b&lKonto Stand '
+  - '&7%serversystem_money% '
+  - ' '
+  - '&8&l» &b&lDiscord '
+  - '&7dc.Crafterslife.de '
+  - ' '
+
+conditions:
+  - 'world:Farmwelt'
+  - 'gamemode:survival'
+  - 'permission:group.staff'
