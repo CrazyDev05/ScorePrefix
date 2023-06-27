@@ -37,7 +37,6 @@
             <url>https://repo.extendedclip.com/content/repositories/placeholderapi/</url>
         </repository>
 
-
         <repository>
             <id>nexux</id>
             <url>https://git.nexux-hosting.de/api/packages/CrazyDev22/maven</url>
@@ -70,6 +69,7 @@
             <groupId>net.kyori</groupId>
             <artifactId>adventure-api</artifactId>
             <version>4.14.0</version>
+            <scope>provided</scope>
         </dependency>
 
         <dependency>
@@ -114,11 +114,11 @@
                         </goals>
                         <configuration>
                             <createDependencyReducedPom>false</createDependencyReducedPom>
-                            <relocations>
+                            <relocations><!--
                                 <relocation>
                                     <pattern>net.kyori</pattern>
                                     <shadedPattern>de.crazydev22.scoreprefix.libs</shadedPattern>
-                                </relocation>
+                                </relocation>-->
                                 <relocation>
                                     <pattern>me.catcoder</pattern>
                                     <shadedPattern>de.crazydev22.scoreprefix.libs</shadedPattern>
