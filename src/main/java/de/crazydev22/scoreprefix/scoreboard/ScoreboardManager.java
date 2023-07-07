@@ -2,19 +2,14 @@ package de.crazydev22.scoreprefix.scoreboard;
 
 import de.crazydev22.scoreprefix.ScorePrefix;
 import org.bukkit.Bukkit;
-import org.bukkit.command.Command;
-import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
-import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.*;
 import java.util.logging.Level;
 
@@ -25,7 +20,6 @@ public class ScoreboardManager implements Listener {
 
     public ScoreboardManager(final ScorePrefix plugin) {
         this.plugin = plugin;
-        Objects.requireNonNull(Bukkit.getPluginCommand("sb")).setExecutor(this::command);
         try {
             this.load();
             Bukkit.getPluginManager().registerEvents(this, plugin);
@@ -37,7 +31,7 @@ public class ScoreboardManager implements Listener {
     }
 
     private void load() throws IOException {
-        final File dir = this.plugin.getDataFolder();
+        final File dir = new File(this.plugin.getDataFolder(), "scoreboards");
         if (!dir.exists()) {
             dir.getParentFile().mkdirs();
         }
@@ -47,14 +41,14 @@ public class ScoreboardManager implements Listener {
         final File defaultFile = new File(dir, "scoreboard.yml");
         if (!defaultFile.exists()) {
             defaultFile.getParentFile().mkdirs();
-            this.plugin.saveResource("scoreboard.yml", false);
+            this.plugin.saveResource("scoreboards/scoreboard.yml", false);
         }
         for (final File file : Objects.requireNonNull(dir.listFiles())) {
             if (!file.isDirectory()) {
                 try {
                     this.scoreboards.add(new Scoreboard(this.plugin, file));
                 }
-                catch (final Scoreboard.DisabledException ignored) {}
+                catch (final ScorePrefix.DisabledException ignored) {}
                 catch (final Exception e) {
                     this.plugin.getLogger().log(Level.SEVERE, "Failed to initialize Scoreboard", e);
                 }
@@ -115,25 +109,10 @@ public class ScoreboardManager implements Listener {
         this.players.remove(event.getPlayer().getUniqueId());
     }
 
-    public boolean command(@NotNull final CommandSender sender, @NotNull final Command cmd, @NotNull final String label, final String[] args) {
-        if (!sender.hasPermission("scoreprefix.command")) {
-            return false;
-        }
-        if (args.length == 1) {
-            if (args[0].equals("reload")) {
-                this.scoreboards.forEach(Scoreboard::destroy);
-                this.scoreboards.clear();
-                this.players.clear();
-                try {
-                    this.load();
-                    sender.sendMessage("Done!");
-                } catch (final Exception e) {
-                    final StringWriter writer = new StringWriter();
-                    e.printStackTrace(new PrintWriter(writer));
-                    sender.sendMessage(writer.toString());
-                }
-            }
-        }
-        return true;
+    public void reload() throws IOException {
+        this.scoreboards.forEach(Scoreboard::destroy);
+        this.scoreboards.clear();
+        this.players.clear();
+        this.load();
     }
 }

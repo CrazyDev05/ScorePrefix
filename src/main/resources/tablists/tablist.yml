@@ -1,0 +1,12 @@
+enabled: true
+
+speed: 5
+header:
+  - 'Willkommen!'
+footer:
+  - '&7dc.Crafterslife.de '
+
+conditions:
+  - 'world:Farmwelt'
+  - 'gamemode:survival'
+  - 'permission:group.staff'
