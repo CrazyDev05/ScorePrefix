@@ -29,13 +29,13 @@ public class JoinQuitManager implements Listener {
 
 	@EventHandler
 	public void onPlayerJoin(@NotNull PlayerJoinEvent event) {
-		var msg = plugin.getConfig().getString(event.getPlayer().hasPlayedBefore() ? "join-message" : "first-join", "null");
+		var msg = plugin.getConfig().getString(event.getPlayer().hasPlayedBefore() ? "join-quit.join-message" : "join-quit.first-join", "null");
 		event.setJoinMessage(msg.equalsIgnoreCase("null") ? null : msg);
 	}
 
 	@EventHandler
 	public void onPlayerQuit(@NotNull PlayerQuitEvent event) {
-		var msg = plugin.getConfig().getString("quit-message", "null");
+		var msg = plugin.getConfig().getString("join-quit.quit-message", "null");
 		event.setQuitMessage(msg.equalsIgnoreCase("null") ? null : msg);
 	}
 }

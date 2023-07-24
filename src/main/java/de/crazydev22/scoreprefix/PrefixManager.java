@@ -51,17 +51,17 @@ public class PrefixManager implements Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onPlayerChat(final AsyncPlayerChatEvent event) {
-        event.setFormat(plugin.getConfig().getString("", "%s §7» %s"));
+        event.setFormat(plugin.getConfig().getString("prefix.chat-format", "%s §7» %s"));
     }
 
     private void update(final Player player) {
         if (this.prefixBoard == null)
-            this.prefixBoard = Objects.requireNonNull(Bukkit.getScoreboardManager()).getNewScoreboard();
+            this.prefixBoard = Objects.requireNonNull(Bukkit.getScoreboardManager()).getMainScoreboard();
         if (!player.getScoreboard().equals(this.prefixBoard))
             player.setScoreboard(this.prefixBoard);
-        final String id = this.getTeam(player.getUniqueId(), this.getWeight(player));
-        final String prefix = this.getPrefix(player);
-        final String suffix = this.getSuffix(player);
+        String prefix = this.getPrefix(player);
+        String suffix = this.getSuffix(player);
+        String id = this.getTeam(player.getUniqueId(), this.getWeight(player));
         Team team = this.prefixBoard.getTeam(id);
         if (team == null) team = this.prefixBoard.registerNewTeam(id);
         String name = player.getName();
@@ -77,10 +77,9 @@ public class PrefixManager implements Listener {
         }
         if (!Objects.equals(player.getDisplayName(), name))
             player.setDisplayName(name);
-        if (!Objects.equals(player.getCustomName(), name))
-            player.setCustomName(name);
-        if (!team.getEntries().contains(player.getName()))
+        if (!team.getEntries().contains(player.getName())) {
             team.addEntry(player.getName());
+        }
     }
 
     private int getWeight(final Player player) {

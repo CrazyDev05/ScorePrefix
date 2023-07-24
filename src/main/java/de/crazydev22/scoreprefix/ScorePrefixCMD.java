@@ -81,6 +81,7 @@ public class ScorePrefixCMD implements CommandExecutor, TabCompleter {
                     list.add("join-quit");
                 if (list.size() > 1)
                     list.add("all");
+                return list;
             }
         }
         return null;
