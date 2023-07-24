@@ -11,16 +11,21 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.ArrayList;
 import java.util.List;
 
 public class ScorePrefixCMD implements CommandExecutor, TabCompleter {
     private final ScoreboardManager scoreboardManager;
     private final TabListManager tabListManager;
+    private final PrefixManager prefixManager;
+    private final JoinQuitManager joinQuitManager;
 
 
-    ScorePrefixCMD(ScoreboardManager scoreboardManager, TabListManager tabListManager) {
+    ScorePrefixCMD(ScoreboardManager scoreboardManager, TabListManager tabListManager, PrefixManager prefixManager, JoinQuitManager joinQuitManager) {
         this.scoreboardManager = scoreboardManager;
         this.tabListManager = tabListManager;
+        this.prefixManager = prefixManager;
+        this.joinQuitManager = joinQuitManager;
     }
 
     @Override
@@ -34,9 +39,13 @@ public class ScorePrefixCMD implements CommandExecutor, TabCompleter {
                     switch (args1) {
                         case "scoreboard" -> { if (scoreboardManager != null) scoreboardManager.reload(); }
                         case "tablist" -> { if (tabListManager != null) tabListManager.reload(); }
+                        case "prefix" -> { if (prefixManager != null) prefixManager.reload(); }
+                        case "join-quit" -> { if (joinQuitManager != null) joinQuitManager.reload(); }
                         case "all" -> {
                             if (scoreboardManager != null) scoreboardManager.reload();
                             if (tabListManager != null) tabListManager.reload();
+                            if (prefixManager != null) prefixManager.reload();
+                            if (joinQuitManager != null) joinQuitManager.reload();
                         }
                     }
                     return true;
@@ -60,13 +69,18 @@ public class ScorePrefixCMD implements CommandExecutor, TabCompleter {
             return List.of("reload");
         else if (args.length == 2) {
             if (args[0].equals("reload")) {
-                return scoreboardManager != null ?
-                        tabListManager != null ?
-                                List.of("scoreboard", "tablist", "all") :
-                                List.of("scoreboard", "all") :
-                        tabListManager != null ?
-                                List.of("tablist", "all") :
-                                List.of();
+                List<String> list = new ArrayList<>();
+
+                if (scoreboardManager != null)
+                    list.add("scoreboard");
+                if (tabListManager != null)
+                    list.add("tablist");
+                if (prefixManager != null)
+                    list.add("prefix");
+                if (joinQuitManager != null)
+                    list.add("join-quit");
+                if (list.size() > 1)
+                    list.add("all");
             }
         }
         return null;

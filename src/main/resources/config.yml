@@ -1,3 +1,10 @@
 tablist: true
-prefix: true
 scoreboard: true
+join-quit:
+  enabled: true
+  join-message: "null"
+  first-join: "null"
+  leave-message: "null"
+prefix:
+  enabled: true
+  chat-format: "%s §7» %s"

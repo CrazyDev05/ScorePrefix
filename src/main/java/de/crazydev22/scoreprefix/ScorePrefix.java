@@ -14,9 +14,11 @@ import java.util.List;
 import java.util.Objects;
 
 public final class ScorePrefix extends JavaPlugin {
-    private final File file = new File(getDataFolder(), "config.yml");
+    public final File file = new File(getDataFolder(), "config.yml");
+    private PrefixManager prefixManager;
     private ScoreboardManager scoreboardManager;
     private TabListManager tabListManager;
+    private JoinQuitManager joinQuitManager;
 
     @Override
     public void onEnable() {
@@ -25,10 +27,11 @@ public final class ScorePrefix extends JavaPlugin {
             saveResource("config.yml", false);
         }
         var config = getConfig();
-        if (config.getBoolean("prefix")) new PrefixManager(this);
-        if (config.getBoolean("scoreboard")) scoreboardManager = new ScoreboardManager(this);
-        if (config.getBoolean("tablist")) tabListManager = new TabListManager(this);
-        var cmdInst = new ScorePrefixCMD(scoreboardManager, tabListManager);
+        if (config.getBoolean("prefix.enabled", false)) prefixManager = new PrefixManager(this);
+        if (config.getBoolean("scoreboard", false)) scoreboardManager = new ScoreboardManager(this);
+        if (config.getBoolean("tablist", false)) tabListManager = new TabListManager(this);
+        if (config.getBoolean("join-quit.enabled", false)) joinQuitManager = new JoinQuitManager(this);
+        var cmdInst = new ScorePrefixCMD(scoreboardManager, tabListManager, prefixManager, joinQuitManager);
         var cmd = Bukkit.getPluginCommand("sb");
         if (cmd != null) {
             cmd.setExecutor(cmdInst);

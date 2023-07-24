@@ -2,15 +2,18 @@ package de.crazydev22.scoreprefix;
 
 import net.luckperms.api.model.group.Group;
 import org.bukkit.Bukkit;
+import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
+import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.Team;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Objects;
 import java.util.UUID;
@@ -30,15 +33,25 @@ public class PrefixManager implements Listener {
         }, 0L, 10L);
     }
 
+    public void reload() {
+        teams.clear();
+        this.prefixBoard = Objects.requireNonNull(Bukkit.getScoreboardManager()).getNewScoreboard();
+        try {
+            plugin.getConfig().load(plugin.file);
+            plugin.getConfig();
+        } catch (IOException | InvalidConfigurationException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     @EventHandler
     public void onPlayerJoin(final PlayerJoinEvent event) {
-        event.setJoinMessage(null);
         Bukkit.getScheduler().runTaskLater(this.plugin, () -> this.update(event.getPlayer()), 1L);
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onPlayerChat(final AsyncPlayerChatEvent event) {
-        event.setFormat("%s §7» %s");
+        event.setFormat(plugin.getConfig().getString("", "%s §7» %s"));
     }
 
     private void update(final Player player) {
