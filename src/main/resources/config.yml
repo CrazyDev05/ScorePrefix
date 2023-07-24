@@ -7,4 +7,6 @@ join-quit:
   leave-message: "null"
 prefix:
   enabled: true
-  chat-format: "%s §7» %s"
+  add-prefix-space: true
+  add-suffix-space: true
+  chat-format: "%prefix% %display_name% §7» %message%"

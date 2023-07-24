@@ -1,41 +1,42 @@
 package de.crazydev22.scoreprefix;
 
-import net.luckperms.api.model.group.Group;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
-import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
-import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.Team;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.Objects;
+import java.util.Map;
 import java.util.UUID;
 
 public class PrefixManager implements Listener {
-    private final HashMap<UUID, String> teams = new HashMap<>();
     private final ScorePrefix plugin;
-    private Scoreboard prefixBoard;
 
     public PrefixManager(final ScorePrefix plugin) {
         this.plugin = plugin;
         Bukkit.getPluginManager().registerEvents(this, plugin);
         Bukkit.getScheduler().scheduleSyncRepeatingTask(plugin, () -> {
-            for (Player player : Bukkit.getOnlinePlayers()) {
-                this.update(player);
+            for (var player : Bukkit.getOnlinePlayers()) {
+                TeamEntry.register(player);
+                try {
+                    TeamEntry teams = TeamEntry.get(player);
+                    if(teams != null)
+                        send(player, teams);
+                } catch (Exception e) {
+                    plugin.getLogger().warning("There was an error whilst updating "+player.getName()+"'s rank!");
+                }
             }
-        }, 0L, 10L);
+        }, 0, 10);
     }
 
     public void reload() {
-        teams.clear();
-        this.prefixBoard = Objects.requireNonNull(Bukkit.getScoreboardManager()).getNewScoreboard();
         try {
             plugin.getConfig().load(plugin.file);
             plugin.getConfig();
@@ -44,76 +45,107 @@ public class PrefixManager implements Listener {
         }
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.LOWEST)
     public void onPlayerJoin(final PlayerJoinEvent event) {
-        Bukkit.getScheduler().runTaskLater(this.plugin, () -> this.update(event.getPlayer()), 1L);
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            TeamEntry.register(event.getPlayer());
+            setTablistRanks(event.getPlayer());
+        }, 2);
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onPlayerChat(final AsyncPlayerChatEvent event) {
-        event.setFormat(plugin.getConfig().getString("prefix.chat-format", "%s §7» %s"));
+        var player = event.getPlayer();
+        var entry = TeamEntry.get(player);
+        var format = plugin.getConfig().getString("prefix.chat-format", "%prefix% %display_name% §7» %message%");
+        format = ScorePrefix.process(player, format)
+                .replaceAll("%prefix%", entry != null ? entry.getPrefix() : "")
+                .replaceAll("%suffix%", entry != null ? entry.getSuffix() : "")
+                .replaceAll("%display_name%", player.getDisplayName())
+                .replaceAll("%name%", player.getName())
+                .replaceAll("%message%", event.getMessage());
+        event.setFormat(format);
     }
 
-    private void update(final Player player) {
-        if (this.prefixBoard == null)
-            this.prefixBoard = Objects.requireNonNull(Bukkit.getScoreboardManager()).getMainScoreboard();
-        if (!player.getScoreboard().equals(this.prefixBoard))
-            player.setScoreboard(this.prefixBoard);
-        String prefix = this.getPrefix(player);
-        String suffix = this.getSuffix(player);
-        String id = this.getTeam(player.getUniqueId(), this.getWeight(player));
-        Team team = this.prefixBoard.getTeam(id);
-        if (team == null) team = this.prefixBoard.registerNewTeam(id);
-        String name = player.getName();
-        if (prefix != null) {
-            if (!team.getPrefix().equals(prefix))
-                team.setPrefix(prefix);
-            name = prefix + " " + name;
+    public void setTablistRanks(@NotNull Player player) {
+        for(Player all : Bukkit.getOnlinePlayers()) {
+            if(all != player) {
+                TeamEntry entry = TeamEntry.get(all);
+                if(entry != null) {
+                    Team team = player.getScoreboard().getTeam(entry.getTeamName());
+                    if(team == null)
+                        team = player.getScoreboard().registerNewTeam(entry.getTeamName());
+                    setPrefixSuffix(player, team, entry.getPrefix(), entry.getSuffix());
+
+                    team.addEntry(all.getName());
+                } else
+                    plugin.getLogger().warning("Did not set "+all.getName()+"'s rank for player "+player.getName());
+            }
         }
-        if (suffix != null) {
-            if (!team.getSuffix().equals(" " + suffix))
-                team.setSuffix(" " + suffix);
-            name = name + " " + suffix;
-        }
-        if (!Objects.equals(player.getDisplayName(), name))
-            player.setDisplayName(name);
-        if (!team.getEntries().contains(player.getName())) {
+
+        TeamEntry entry = TeamEntry.get(player);
+        if(entry != null) {
+            send(player, entry);
+        } else
+            plugin.getLogger().warning("Did not set "+plugin.getName()+"'s rank for the already online players");
+    }
+
+    private void send(@NotNull Player player, TeamEntry entry) {
+        for(Player all : Bukkit.getOnlinePlayers()) {
+            Team team = all.getScoreboard().getTeam(entry.getTeamName());
+            if(team == null)
+                team = all.getScoreboard().registerNewTeam(entry.getTeamName());
+
+            setPrefixSuffix(player, team, entry.getPrefix(), entry.getSuffix());
             team.addEntry(player.getName());
         }
     }
 
-    private int getWeight(final Player player) {
-        return LuckPermsAPI.getGroup(player).getWeight().orElse(0);
+    public void setPrefixSuffix(@NotNull Player player, @NotNull Team team, @NotNull String prefix, @NotNull String suffix) {
+        if (prefix.length() != 0)
+            team.setPrefix(prefix + (plugin.getConfig().getBoolean("prefix.add-prefix-space") ? " " : ""));
+        if (suffix.length() != 0)
+            team.setSuffix(suffix + (plugin.getConfig().getBoolean("prefix.add-suffix-space") ? " " : ""));
+        player.setPlayerListName(null);
     }
 
-    private String getPrefix(final Player player) {
-        String prefix = LuckPermsAPI.getUser(player).getCachedData().getMetaData().getPrefix();
-        final Group group = LuckPermsAPI.getGroup(player);
-        if (prefix == null && group != null) {
-            prefix = group.getCachedData().getMetaData().getPrefix();
-        }
-        return ScorePrefix.process(player, prefix);
-    }
+    public static class TeamEntry {
+        private static final Map<UUID, TeamEntry> teams = new HashMap<>();
+        private String prefix = "";
+        private String suffix = "";
+        private int weight = 0;
 
-    private String getSuffix(final Player player) {
-        String prefix = LuckPermsAPI.getUser(player).getCachedData().getMetaData().getSuffix();
-        final Group group = LuckPermsAPI.getGroup(player);
-        if (prefix == null && group != null) {
-            prefix = group.getCachedData().getMetaData().getSuffix();
+        public static void register(@NotNull Player player) {
+            var uuid = player.getUniqueId();
+            if (!teams.containsKey(uuid))
+                teams.put(uuid, new TeamEntry());
+            teams.get(uuid).set(
+                    LuckPermsAPI.getPrefix(player),
+                    LuckPermsAPI.getSuffix(player),
+                    LuckPermsAPI.getWeight(player)
+            );
         }
-        return ScorePrefix.process(player, prefix);
-    }
 
-    private String getTeam(final UUID uuid, int weight) {
-        weight = Integer.MAX_VALUE - weight;
-        this.teams.remove(uuid);
-        int i = 1;
-        String id = String.format("%010d", weight) + "team-0";
-        while (this.teams.containsValue(id)) {
-            id = String.format("%010d", weight) + "team-" + i;
-            ++i;
+        public static TeamEntry get(@NotNull Player player) {
+            return teams.get(player.getUniqueId());
         }
-        this.teams.put(uuid, id);
-        return id;
+
+        public void set(@NotNull String prefix, @NotNull String suffix, int weight) {
+            this.prefix = prefix;
+            this.suffix = suffix;
+            this.weight = weight;
+        }
+
+        public String getPrefix() {
+            return prefix;
+        }
+
+        public String getSuffix() {
+            return suffix;
+        }
+
+        public String getTeamName() {
+            return String.format("%010d", weight) + "t-" + teams.size();
+        }
     }
 }
