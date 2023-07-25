@@ -1,5 +1,6 @@
 package de.crazydev22.scoreprefix;
 
+import net.luckperms.api.event.user.UserDataRecalculateEvent;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.entity.Player;
@@ -22,18 +23,23 @@ public class PrefixManager implements Listener {
     public PrefixManager(final ScorePrefix plugin) {
         this.plugin = plugin;
         Bukkit.getPluginManager().registerEvents(this, plugin);
-        Bukkit.getScheduler().scheduleSyncRepeatingTask(plugin, () -> {
-            for (var player : Bukkit.getOnlinePlayers()) {
-                TeamEntry.register(player);
-                try {
-                    TeamEntry teams = TeamEntry.get(player);
-                    if(teams != null)
-                        send(player, teams);
-                } catch (Exception e) {
-                    plugin.getLogger().warning("There was an error whilst updating "+player.getName()+"'s rank!");
-                }
-            }
-        }, 0, 10);
+        var interval = plugin.getConfig().getInt("prefix.update", -1);
+        if (interval > 0) {
+            Bukkit.getScheduler().scheduleSyncRepeatingTask(plugin, () -> {
+                Bukkit.getOnlinePlayers().forEach(this::updateTablistRanks);
+            }, 0, interval);
+        }
+
+        LuckPermsAPI.getAPI().getEventBus().subscribe(UserDataRecalculateEvent.class, event ->
+                Bukkit.getScheduler().runTaskLaterAsynchronously(plugin, () -> {
+                    Player player = Bukkit.getPlayer(event.getUser().getUniqueId());
+                    if(player != null) {
+                        TeamEntry entry = TeamEntry.get(player);
+                        if(entry != null) {
+                            updateTablistRanks(player);
+                        }
+                    }
+                }, 10));
     }
 
     public void reload() {
@@ -67,6 +73,17 @@ public class PrefixManager implements Listener {
         event.setFormat(format);
     }
 
+    public void updateTablistRanks(Player player) {
+        TeamEntry.register(player);
+        try {
+            TeamEntry teams = TeamEntry.get(player);
+            if(teams != null)
+                send(player, teams);
+        } catch (Exception e) {
+            plugin.getLogger().warning("There was an error whilst updating "+player.getName()+"'s rank!");
+        }
+    }
+
     public void setTablistRanks(@NotNull Player player) {
         for(Player all : Bukkit.getOnlinePlayers()) {
             if(all != player) {
@@ -91,10 +108,11 @@ public class PrefixManager implements Listener {
     }
 
     private void send(@NotNull Player player, TeamEntry entry) {
-        for(Player all : Bukkit.getOnlinePlayers()) {
-            Team team = all.getScoreboard().getTeam(entry.getTeamName());
+        for(Player target : Bukkit.getOnlinePlayers()) {
+            var name = entry.getTeamName();
+            Team team = target.getScoreboard().getTeam(name);
             if(team == null)
-                team = all.getScoreboard().registerNewTeam(entry.getTeamName());
+                team = target.getScoreboard().registerNewTeam(name);
 
             setPrefixSuffix(player, team, entry.getPrefix(), entry.getSuffix());
             team.addEntry(player.getName());
@@ -145,7 +163,7 @@ public class PrefixManager implements Listener {
         }
 
         public String getTeamName() {
-            return String.format("%010d", weight) + "t-" + teams.size();
+            return String.format("%010d", weight) + "team-" + teams.size();
         }
     }
 }
