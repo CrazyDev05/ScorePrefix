@@ -27,7 +27,7 @@ public final class ScorePrefix extends JavaPlugin {
             saveResource("config.yml", false);
         }
         var config = getConfig();
-        if (config.getBoolean("prefix.enabled", false)) prefixManager = new PrefixManager(this);
+        if (config.getBoolean("prefix.enabled", false)) prefixManager = new PrefixManager(this, config.getBoolean("prefix.useExistingScoreboard", false));
         if (config.getBoolean("scoreboard", false)) scoreboardManager = new ScoreboardManager(this);
         if (config.getBoolean("tablist", false)) tabListManager = new TabListManager(this);
         if (config.getBoolean("join-quit.enabled", false)) joinQuitManager = new JoinQuitManager(this);

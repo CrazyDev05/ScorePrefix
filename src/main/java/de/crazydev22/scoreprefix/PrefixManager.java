@@ -9,25 +9,30 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.Team;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 
 public class PrefixManager implements Listener {
     private final ScorePrefix plugin;
+    private final boolean useExisting;
+    private Scoreboard scoreboard;
 
-    public PrefixManager(final ScorePrefix plugin) {
+    public PrefixManager(ScorePrefix plugin, boolean useExisting) {
         this.plugin = plugin;
+        this.useExisting = useExisting;
         Bukkit.getPluginManager().registerEvents(this, plugin);
         var interval = plugin.getConfig().getInt("prefix.update", -1);
         if (interval > 0) {
-            Bukkit.getScheduler().scheduleSyncRepeatingTask(plugin, () -> {
-                Bukkit.getOnlinePlayers().forEach(this::updateTablistRanks);
-            }, 0, interval);
+            Bukkit.getScheduler().scheduleSyncRepeatingTask(plugin, () ->
+                    Bukkit.getOnlinePlayers().forEach(this::updateTablistRanks),
+                    0, interval);
         }
 
         LuckPermsAPI.getAPI().getEventBus().subscribe(UserDataRecalculateEvent.class, event ->
@@ -53,9 +58,10 @@ public class PrefixManager implements Listener {
 
     @EventHandler(priority = EventPriority.LOWEST)
     public void onPlayerJoin(final PlayerJoinEvent event) {
+        var player = event.getPlayer();
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            TeamEntry.register(event.getPlayer());
-            setTablistRanks(event.getPlayer());
+            TeamEntry.register(player);
+            setTablistRanks(player);
         }, 2);
     }
 
@@ -89,9 +95,11 @@ public class PrefixManager implements Listener {
             if(all != player) {
                 TeamEntry entry = TeamEntry.get(all);
                 if(entry != null) {
-                    Team team = player.getScoreboard().getTeam(entry.getTeamName());
+                    updateScoreboard(player);
+                    var name = entry.getTeamName();
+                    Team team = player.getScoreboard().getTeam(name);
                     if(team == null)
-                        team = player.getScoreboard().registerNewTeam(entry.getTeamName());
+                        team = player.getScoreboard().registerNewTeam(name);
                     setPrefixSuffix(player, team, entry.getPrefix(), entry.getSuffix());
 
                     team.addEntry(all.getName());
@@ -109,6 +117,7 @@ public class PrefixManager implements Listener {
 
     private void send(@NotNull Player player, TeamEntry entry) {
         for(Player target : Bukkit.getOnlinePlayers()) {
+            updateScoreboard(target);
             var name = entry.getTeamName();
             Team team = target.getScoreboard().getTeam(name);
             if(team == null)
@@ -116,6 +125,15 @@ public class PrefixManager implements Listener {
 
             setPrefixSuffix(player, team, entry.getPrefix(), entry.getSuffix());
             team.addEntry(player.getName());
+        }
+    }
+
+    private void updateScoreboard(Player player) {
+        if (!useExisting) {
+            if (scoreboard == null)
+                scoreboard = Objects.requireNonNull(Bukkit.getScoreboardManager()).getNewScoreboard();
+            if (player.getScoreboard() != scoreboard)
+                player.setScoreboard(scoreboard);
         }
     }
 
