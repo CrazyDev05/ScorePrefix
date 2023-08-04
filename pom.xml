@@ -91,7 +91,7 @@
     </distributionManagement>
 
     <build>
-        <defaultGoal>clean package</defaultGoal>
+        <defaultGoal>package</defaultGoal>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

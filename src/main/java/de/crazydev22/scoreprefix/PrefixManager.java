@@ -50,7 +50,7 @@ public class PrefixManager implements Listener {
     public void reload() {
         try {
             plugin.getConfig().load(plugin.file);
-            plugin.getConfig();
+            Bukkit.getOnlinePlayers().forEach(this::updateTablistRanks);
         } catch (IOException | InvalidConfigurationException e) {
             throw new RuntimeException(e);
         }
@@ -61,7 +61,8 @@ public class PrefixManager implements Listener {
         var player = event.getPlayer();
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             TeamEntry.register(player);
-            setTablistRanks(player);
+            Bukkit.getScheduler().runTaskLater(plugin, () ->
+                    setTablistRanks(player), 2);
         }, 2);
     }
 
@@ -95,14 +96,15 @@ public class PrefixManager implements Listener {
             if(all != player) {
                 TeamEntry entry = TeamEntry.get(all);
                 if(entry != null) {
-                    updateScoreboard(player);
-                    var name = entry.getTeamName();
-                    Team team = player.getScoreboard().getTeam(name);
-                    if(team == null)
-                        team = player.getScoreboard().registerNewTeam(name);
-                    setPrefixSuffix(player, team, entry.getPrefix(), entry.getSuffix());
+                    updateScoreboard(player, () -> {
+                        var name = entry.getTeamName();
+                        Team team = player.getScoreboard().getTeam(name);
+                        if(team == null)
+                            team = player.getScoreboard().registerNewTeam(name);
+                        setPrefixSuffix(player, team, entry.getPrefix(), entry.getSuffix());
 
-                    team.addEntry(all.getName());
+                        team.addEntry(all.getName());
+                    });
                 } else
                     plugin.getLogger().warning("Did not set "+all.getName()+"'s rank for player "+player.getName());
             }
@@ -117,23 +119,40 @@ public class PrefixManager implements Listener {
 
     private void send(@NotNull Player player, TeamEntry entry) {
         for(Player target : Bukkit.getOnlinePlayers()) {
-            updateScoreboard(target);
-            var name = entry.getTeamName();
-            Team team = target.getScoreboard().getTeam(name);
-            if(team == null)
-                team = target.getScoreboard().registerNewTeam(name);
+            updateScoreboard(target, () -> {
+                var name = entry.getTeamName();
+                Team team = target.getScoreboard().getTeam(name);
+                if(team == null)
+                    team = target.getScoreboard().registerNewTeam(name);
 
-            setPrefixSuffix(player, team, entry.getPrefix(), entry.getSuffix());
-            team.addEntry(player.getName());
+                setPrefixSuffix(player, team, entry.getPrefix(), entry.getSuffix());
+                team.addEntry(player.getName());
+            });
         }
     }
 
-    private void updateScoreboard(Player player) {
+    private void updateScoreboard(Player player, Runnable runnable) {
         if (!useExisting) {
             if (scoreboard == null)
                 scoreboard = Objects.requireNonNull(Bukkit.getScoreboardManager()).getNewScoreboard();
-            if (player.getScoreboard() != scoreboard)
-                player.setScoreboard(scoreboard);
+            if (player.getScoreboard() != scoreboard) {
+                try {
+                    player.setScoreboard(scoreboard);
+                    runnable.run();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+                        try {
+                            player.setScoreboard(scoreboard);
+                            runnable.run();
+                        } catch (Exception ex) {
+                            ex.printStackTrace();
+                        }
+                    });
+                }
+            }
+        } else {
+            runnable.run();
         }
     }
 
