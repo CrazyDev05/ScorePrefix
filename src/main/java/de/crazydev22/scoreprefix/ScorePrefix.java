@@ -4,6 +4,7 @@ import de.crazydev22.scoreprefix.scoreboard.ScoreboardManager;
 import de.crazydev22.scoreprefix.tablist.TabListManager;
 import me.clip.placeholderapi.PlaceholderAPI;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.minimessage.ParsingException;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
@@ -14,6 +15,7 @@ import java.util.List;
 import java.util.Objects;
 
 import static net.kyori.adventure.text.minimessage.MiniMessage.miniMessage;
+import static net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection;
 
 public final class ScorePrefix extends JavaPlugin {
     public final File file = new File(getDataFolder(), "config.yml");
@@ -52,7 +54,11 @@ public final class ScorePrefix extends JavaPlugin {
     }
 
     public static Component processComponent(final Player player, final String text) {
-        return miniMessage().deserialize(process(player, text));
+        try {
+            return miniMessage().deserialize(process(player, text));
+        } catch (ParsingException e) {
+            return miniMessage().deserialize(miniMessage().serialize(legacySection().deserialize(process(player, text))));
+        }
     }
 
     public static int checkConditions(final Player player, List<String> conditions) {
