@@ -32,15 +32,15 @@ public class TabListManager implements Listener {
 
     private void load() throws IOException {
         final File dir = new File(this.plugin.getDataFolder(), "tablists");
-        if (!dir.exists()) {
-            dir.getParentFile().mkdirs();
-        }
+        if (!dir.exists() && !dir.mkdirs())
+            throw new IOException("Failed to create TabLists directory");
         if (dir.isFile()) {
             throw new IOException("The TabLists directory does not exist");
         }
         final File defaultFile = new File(dir, "tablist.yml");
         if (!defaultFile.exists()) {
-            defaultFile.getParentFile().mkdirs();
+            if (!defaultFile.getParentFile().exists() && !defaultFile.getParentFile().mkdirs())
+                throw new IOException("Failed to create parent directory");
             this.plugin.saveResource("tablists/tablist.yml", false);
         }
         for (final File file : Objects.requireNonNull(dir.listFiles())) {

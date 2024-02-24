@@ -31,19 +31,18 @@ public class ScoreboardManager implements Listener {
     }
 
     private void load() throws IOException {
-        final File dir = new File(this.plugin.getDataFolder(), "scoreboards");
-        if (!dir.exists()) {
-            dir.getParentFile().mkdirs();
-        }
-        if (dir.isFile()) {
+        final File dir = new File(plugin.getDataFolder(), "scoreboards");
+        if (!dir.exists() && !dir.mkdirs())
+            throw new IOException("Failed to create Scoreboards directory");
+        if (dir.isFile())
             throw new IOException("The Scoreboards directory does not exist");
-        }
         final File defaultFile = new File(dir, "scoreboard.yml");
         if (!defaultFile.exists()) {
-            defaultFile.getParentFile().mkdirs();
+            if (!defaultFile.getParentFile().exists() && !defaultFile.getParentFile().mkdirs())
+                throw new IOException("Failed to create parent directory");
             this.plugin.saveResource("scoreboards/scoreboard.yml", false);
         }
-        for (final File file : Objects.requireNonNull(dir.listFiles())) {
+        for (final File file : Objects.requireNonNull(dir.listFiles((parent, name) -> name.endsWith(".yml")))) {
             if (!file.isDirectory()) {
                 try {
                     this.scoreboards.add(new Scoreboard(this.plugin, file));
