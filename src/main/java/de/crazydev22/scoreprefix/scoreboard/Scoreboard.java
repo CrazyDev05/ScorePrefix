@@ -33,9 +33,8 @@ public class Scoreboard {
             throw new IllegalArgumentException("The Title cannot be null");
         }
         this.scoreboard = ProtocolSidebar.newAdventureSidebar(ScorePrefix.processComponent(null, title), plugin);
-        for (final String line : content) {
+        for (final String line : content)
             this.scoreboard.addUpdatableLine(player -> ScorePrefix.processComponent(player, line));
-        }
         this.scoreboard.updateLinesPeriodically(0L, speed);
     }
 

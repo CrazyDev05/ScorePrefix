@@ -14,6 +14,15 @@
     <properties>
         <java.version>17</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <!-- Versions -->
+        <spigot-api>1.20.4-R0.1-SNAPSHOT</spigot-api>
+        <!--https://jd.papermc.io/paper/1.20/-->
+        <placeholderapi>2.11.3</placeholderapi>
+        <adventure-api>4.16.0</adventure-api>
+        <!-- https://github.com/PlaceholderAPI/PlaceholderAPI/ -->
+        <bukkit-sidebar>6.2.5-SNAPSHOT</bukkit-sidebar>
+        <luckperms-api>5.4</luckperms-api>
     </properties>
 
     <repositories>
@@ -36,59 +45,49 @@
             <id>placeholderapi</id>
             <url>https://repo.extendedclip.com/content/repositories/placeholderapi/</url>
         </repository>
-
-        <repository>
-            <id>nexux</id>
-            <url>https://git.nexux-hosting.de/api/packages/CrazyDev22/maven</url>
-        </repository>
     </repositories>
 
     <dependencies>
         <dependency>
             <groupId>org.spigotmc</groupId>
             <artifactId>spigot-api</artifactId>
-            <version>1.19.4-R0.1-SNAPSHOT</version>
+            <version>${spigot-api}</version>
             <scope>provided</scope>
         </dependency>
 
         <dependency>
             <groupId>net.luckperms</groupId>
             <artifactId>api</artifactId>
-            <version>5.4</version>
+            <version>${luckperms-api}</version>
             <scope>provided</scope>
         </dependency>
 
         <dependency>
             <groupId>me.clip</groupId>
             <artifactId>placeholderapi</artifactId>
-            <version>2.11.3</version>
+            <version>${placeholderapi}</version>
             <scope>provided</scope>
         </dependency>
 
         <dependency>
             <groupId>net.kyori</groupId>
             <artifactId>adventure-api</artifactId>
-            <version>4.14.0</version>
+            <version>${adventure-api}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>net.kyori</groupId>
+            <artifactId>adventure-text-minimessage</artifactId>
+            <version>${adventure-api}</version>
             <scope>provided</scope>
         </dependency>
 
         <dependency>
             <groupId>me.catcoder</groupId>
             <artifactId>bukkit-sidebar</artifactId>
-            <version>6.2.3-SNAPSHOT</version>
+            <version>${bukkit-sidebar}</version>
         </dependency>
     </dependencies>
-
-    <distributionManagement>
-        <repository>
-            <id>nexux</id>
-            <url>https://git.nexux-hosting.de/api/packages/CrazyDev22/maven</url>
-        </repository>
-        <snapshotRepository>
-            <id>nexux</id>
-            <url>https://git.nexux-hosting.de/api/packages/CrazyDev22/maven</url>
-        </snapshotRepository>
-    </distributionManagement>
 
     <build>
         <defaultGoal>package</defaultGoal>
@@ -114,11 +113,7 @@
                         </goals>
                         <configuration>
                             <createDependencyReducedPom>false</createDependencyReducedPom>
-                            <relocations><!--
-                                <relocation>
-                                    <pattern>net.kyori</pattern>
-                                    <shadedPattern>de.crazydev22.scoreprefix.libs</shadedPattern>
-                                </relocation>-->
+                            <relocations>
                                 <relocation>
                                     <pattern>me.catcoder</pattern>
                                     <shadedPattern>de.crazydev22.scoreprefix.libs</shadedPattern>

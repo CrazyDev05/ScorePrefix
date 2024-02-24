@@ -13,6 +13,8 @@ import java.io.File;
 import java.util.List;
 import java.util.Objects;
 
+import static net.kyori.adventure.text.minimessage.MiniMessage.miniMessage;
+
 public final class ScorePrefix extends JavaPlugin {
     public final File file = new File(getDataFolder(), "config.yml");
     private PrefixManager prefixManager;
@@ -23,7 +25,8 @@ public final class ScorePrefix extends JavaPlugin {
     @Override
     public void onEnable() {
         if (!file.exists()) {
-            file.getParentFile().mkdirs();
+            if (!file.getParentFile().mkdirs())
+                getLogger().info("Failed to create folder for config.yml");
             saveResource("config.yml", false);
         }
         var config = getConfig();
@@ -40,9 +43,8 @@ public final class ScorePrefix extends JavaPlugin {
     }
 
     public static String process(final Player player, String text, boolean... args) {
-        if (text == null) {
+        if (text == null)
             return null;
-        }
         text = ChatColor.translateAlternateColorCodes('&', text);
         return args.length == 0 ?
                 process(player, PlaceholderAPI.setPlaceholders(player, text), true) :
@@ -50,7 +52,7 @@ public final class ScorePrefix extends JavaPlugin {
     }
 
     public static Component processComponent(final Player player, final String text) {
-        return Component.text(process(player, text));
+        return miniMessage().deserialize(process(player, text));
     }
 
     public static int checkConditions(final Player player, List<String> conditions) {

@@ -18,6 +18,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.logging.Level;
 
 public class PrefixManager implements Listener {
     private final ScorePrefix plugin;
@@ -96,15 +97,7 @@ public class PrefixManager implements Listener {
             if(all != player) {
                 TeamEntry entry = TeamEntry.get(all);
                 if(entry != null) {
-                    updateScoreboard(player, () -> {
-                        var name = entry.getTeamName();
-                        Team team = player.getScoreboard().getTeam(name);
-                        if(team == null)
-                            team = player.getScoreboard().registerNewTeam(name);
-                        setPrefixSuffix(player, team, entry.getPrefix(), entry.getSuffix());
-
-                        team.addEntry(all.getName());
-                    });
+                    updateScoreboard(player, entry, all.getName());
                 } else
                     plugin.getLogger().warning("Did not set "+all.getName()+"'s rank for player "+player.getName());
             }
@@ -119,47 +112,49 @@ public class PrefixManager implements Listener {
 
     private void send(@NotNull Player player, TeamEntry entry) {
         for(Player target : Bukkit.getOnlinePlayers()) {
-            updateScoreboard(target, () -> {
-                var name = entry.getTeamName();
-                Team team = target.getScoreboard().getTeam(name);
-                if(team == null)
-                    team = target.getScoreboard().registerNewTeam(name);
-
-                setPrefixSuffix(player, team, entry.getPrefix(), entry.getSuffix());
-                team.addEntry(player.getName());
-            });
+            updateScoreboard(target, entry, player.getName());
         }
     }
 
-    private void updateScoreboard(Player player, Runnable runnable) {
+    private void updateScoreboard(Player player, TeamEntry entry, String target) {
+        Runnable update = () -> {
+            var name = entry.getTeamName();
+            Team team = player.getScoreboard().getTeam(name);
+            if(team == null)
+                team = player.getScoreboard().registerNewTeam(name);
+
+            setPrefixSuffix(player, team, entry.getPrefix(), entry.getSuffix());
+            team.addEntry(target);
+        };
+
         if (!useExisting) {
             if (scoreboard == null)
                 scoreboard = Objects.requireNonNull(Bukkit.getScoreboardManager()).getNewScoreboard();
             if (player.getScoreboard() != scoreboard) {
                 try {
                     player.setScoreboard(scoreboard);
-                    runnable.run();
+                    update.run();
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    plugin.getLogger().log(Level.WARNING, "Failed to update scoreboard for player " + player.getName(), e);
                     Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
                         try {
                             player.setScoreboard(scoreboard);
-                            runnable.run();
+                            update.run();
                         } catch (Exception ex) {
-                            ex.printStackTrace();
+                            plugin.getLogger().log(Level.WARNING, "Failed to update scoreboard for player " + player.getName(), e);
                         }
                     });
                 }
             }
         } else {
-            runnable.run();
+            update.run();
         }
     }
 
     public void setPrefixSuffix(@NotNull Player player, @NotNull Team team, @NotNull String prefix, @NotNull String suffix) {
-        if (prefix.length() != 0)
+        if (!prefix.isBlank())
             team.setPrefix(prefix + (plugin.getConfig().getBoolean("prefix.add-prefix-space") ? " " : ""));
-        if (suffix.length() != 0)
+        if (!suffix.isBlank())
             team.setSuffix(suffix + (plugin.getConfig().getBoolean("prefix.add-suffix-space") ? " " : ""));
         player.setPlayerListName(null);
     }
